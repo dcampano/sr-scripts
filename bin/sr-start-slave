@@ -1,0 +1,55 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'fog'
+require 'mysql'
+
+connection = Fog::Compute.new(:provider => "AWS", :region => "us-west-1")
+
+# somewhere up here check to see if the devices are already attached
+
+instance_id = "i-50f88014"
+
+def get_latest_snapshot(snapshots, instance_id)
+        filtered_snap = snapshots.find_all { |s| s.tags["instance_id"] == instance_id }
+        latest_snap = filtered_snap.sort { |a,b| b.created_at <=> a.created_at }.first unless filtered_snap.length == 0
+        return latest_snap
+end
+
+snapshot = get_latest_snapshot(connection.snapshots.all, instance_id)
+
+p snapshot
+
+# USE THE TAGS in snapshot to call CHANGE MASTER TO
+
+current_master = connection.servers.get(instance_id)
+
+p current_master
+
+# need to find out the current node that this is running on
+#
+#
+current_instance_id = `curl http://169.254.169.254/latest/meta-data/instance-id`
+
+p current_instance_id
+
+current_instance = connection.servers.get(current_instance_id)
+p current_instance.availability_zone
+
+vol = connection.volumes.new(:snapshot_id => snapshot.id, :availability_zone => current_instance.availability_zone, :size => snapshot.volume_size)
+vol.device = "/dev/sdk"
+vol.server = current_instance
+vol.save
+p vol
+
+until vol.state == "in-use" do
+	sleep 1
+	vol.reload
+end
+sleep 15
+`mkdir /mnt/mysql`
+`mount -t xfs /dev/sdk /mnt/mysql`
+`service mysql start`
+
+#`mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='binarylogs.006693', MASTER_LOG_POS=785268118;"`
+# start mysql, connect to mysql and issue change master and start slave commands
