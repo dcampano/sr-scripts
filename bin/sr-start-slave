@@ -8,6 +8,9 @@ require 'ostruct'
 connection = Fog::Compute.new(:provider => "AWS", :region => "us-west-1")
 sdb = Fog::AWS::SimpleDB.new()
 
+#STUPID HACK because the RPM install starts the server
+`/sbin/service mysql stop`
+
 # somewhere up here check to see if the devices are already attached
 
 p connection.snapshots.all.first
@@ -34,6 +37,8 @@ end
 
 rows.sort! { |a,b| b.timestamp <=> a.timestamp }
 
+master_log_file = nil
+master_log_pos = nil
 latest_snapshots = nil
 rows.each do |r|
 	if latest_snapshots != nil
@@ -48,6 +53,8 @@ rows.each do |r|
 	end
 	if pending == false
 		latest_snapshots = r.snapshots.split(",")
+		master_log_file = r.master_log_file
+		master_log_pos = r.master_log_pos
 	end
 	
 end
@@ -118,9 +125,9 @@ else
 #	`mount -t xfs /dev/md0 /mnt/mysql`
 end
 
-#`service mysql start`
+`/sbin/service mysql start`
 
-#`mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='binarylogs.006693', MASTER_LOG_POS=785268118;"`
+`mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='#{master_log_file}', MASTER_LOG_POS=#{master_log_pos};"`
 # start mysql, connect to mysql and issue change master and start slave commands
 
 #NEED TO TAG THE INSTANCE THAT STARTED WITH SOME OF THE INFO FROM THE CURRENT MASTER
