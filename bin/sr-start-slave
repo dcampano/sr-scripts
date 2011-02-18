@@ -85,7 +85,7 @@ p current_master
 current_instance_id = `curl http://169.254.169.254/latest/meta-data/instance-id`
 current_instance = connection.servers.get(current_instance_id)
 
-latest_snapshots.each_index |index| do
+latest_snapshots.each_index do |index|
 	snapshot_id = latest_snapshots[index]
 	current_disk = master_disks[index]
 	
@@ -103,15 +103,29 @@ latest_snapshots.each_index |index| do
 	end
 end
 
-exit
+current_instance.reload
+p current_instance
 
+# this should be something other than sleep, it needs to wait to make sure all disks are mounted
 sleep 15
 
-# NEED TO FIND OUT IF NUMBER OF DISKS IS GREATER THAN 1, IF SO, THEN use mdadm to create an array and mount, if not, then just mount
-
 `mkdir /mnt/mysql`
-`mount -t xfs /dev/sdk /mnt/mysql`
-`service mysql start`
+# NEED TO FIND OUT IF NUMBER OF DISKS IS GREATER THAN 1, IF SO, THEN use mdadm to create an array and mount, if not, then just mount
+if latest_snapshots.length > 1
+	`/sbin/mdadm --assemble /dev/md0 #{master_disks.join(' ')}`
+	`mount -t xfs /dev/md0 /mnt/mysql`
+else
+#	`mount -t xfs /dev/md0 /mnt/mysql`
+end
+
+#`service mysql start`
 
 #`mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='binarylogs.006693', MASTER_LOG_POS=785268118;"`
 # start mysql, connect to mysql and issue change master and start slave commands
+
+#NEED TO TAG THE INSTANCE THAT STARTED WITH SOME OF THE INFO FROM THE CURRENT MASTER
+
+connection.tags.create(:resource_id => current_instance.id, :key => "master_instance_id", :value => current_master.id)
+connection.tags.create(:resource_id => current_instance.id, :key => "mysql_disks", :value => current_master.tags["mysql_disks"])
+
+
