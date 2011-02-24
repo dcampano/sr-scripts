@@ -120,7 +120,8 @@ sleep 15
 # NEED TO FIND OUT IF NUMBER OF DISKS IS GREATER THAN 1, IF SO, THEN use mdadm to create an array and mount, if not, then just mount
 if latest_snapshots.length > 1
 	`/sbin/mdadm --assemble /dev/md0 #{master_disks.join(' ')}`
-	`mount -t xfs /dev/md0 /mnt/mysql`
+	`/sbin/blockdev --setra 65536 /dev/md0`
+	`mount -o noatime -t xfs /dev/md0 /mnt/mysql`
 else
 #	`mount -t xfs /dev/md0 /mnt/mysql`
 end
