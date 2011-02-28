@@ -113,8 +113,17 @@ end
 current_instance.reload
 p current_instance
 
-# this should be something other than sleep, it needs to wait to make sure all disks are mounted
-sleep 15
+# Wait for all the disks to finish attaching
+disks_attaching = true
+while disks_attaching
+	sleep 5
+	current_instance.reload
+	non_attached_disk_count = current_instance.block_device_mapping.find_all { |x| x["status"] != "attached" }.length
+	if non_attached_disk_count == 0
+		disks_attaching = false
+	end
+end
+
 
 `mkdir /mnt/mysql`
 # NEED TO FIND OUT IF NUMBER OF DISKS IS GREATER THAN 1, IF SO, THEN use mdadm to create an array and mount, if not, then just mount
