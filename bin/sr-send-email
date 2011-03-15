@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'fog'
+require 'optparse'
+
+options = {}
+
+optparse = OptionParser.new do|opts|
+  opts.on( '-f FROM', 'From Email Address') do |o|
+    options[:from] = o
+  end
+  opts.on( '-t TO', 'To Email Address') do |o|
+    options[:to] = o
+  end
+  opts.on( '-s SUBJECT', 'Email Subject') do |o|
+    options[:subject] = o
+  end
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+optparse.parse!
+
+ses = Fog::AWS::SES.new()
+
+destination = {}
+destination['ToAddresses'] = [options[:to]]
+
+message = {}
+message['Body'] = {}
+message['Body']['Text'] = {}
+message['Body']['Text']['Data'] = ARGF.read
+message['Subject'] = {}
+message['Subject']['Data'] = options[:subject]
+
+ses.send_email options[:from], destination, message
