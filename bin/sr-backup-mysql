@@ -32,3 +32,14 @@ if pending
 end
 #p "./ec2-consistent-snapshot-rb -f conf.yml #{volumes.join(' ')}"
 `sr-ec2-consistent-snapshot -f /etc/sr-ec2-consistent-snapshot.yml #{volumes.join(' ')}`
+
+# Purge the extra backups
+volumes.each do |volume_id|
+	snapshots = connection.snapshots.all({"volume-id" => volume_id, "status" => "completed"}).sort { |a,b| b.created_at <=> a.created_at }
+	# Remove the first X number of snapshots to keep them
+	5.times { snapshots.shift }
+
+	snapshots.each do |s|
+		connection.delete_snapshot s.id
+	end
+end
