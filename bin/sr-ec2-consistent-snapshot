@@ -136,7 +136,7 @@ end
 
 random_id = rand(36**8).to_s(36)
 attributes = Hash.new
-attributes["instance_id"] = `curl http://169.254.169.254/latest/meta-data/instance-id`
+attributes["instance_id"] = `curl -s http://169.254.169.254/latest/meta-data/instance-id`
 attributes["snapshots"] = snapshots.join(",")
 attributes["timestamp"] = Time.now.to_i
 attributes["master_log_file"] = master_info["MASTER_LOG_FILE"]
