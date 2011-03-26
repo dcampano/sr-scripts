@@ -147,5 +147,5 @@ end
 
 connection.tags.create(:resource_id => current_instance.id, :key => "master_instance_id", :value => current_master.id)
 connection.tags.create(:resource_id => current_instance.id, :key => "mysql_disks", :value => current_master.tags["mysql_disks"])
-
-
+connection.tags.create(:resource_id => current_instance.id, :key => "master_alias", :value => current_master.tags["master_alias"])
+connection.tags.create(:resource_id => current_instance.id, :key => "master_status", :value => "slave")

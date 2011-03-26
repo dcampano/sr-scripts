@@ -1,4 +1,5 @@
 require 'yaml'
+require 'logger'
 
 module SrScripts
 	class Compute 
@@ -15,6 +16,17 @@ module SrScripts
 			@aws_access_key = yml["aws_access_key"]
 			@aws_secret_key = yml["aws_secret_key"]	
 			return Fog::AWS::SimpleDB.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key)
+		end
+	end
+	class Log
+		def self.get 
+			@log = Logger.new(STDOUT)
+			@log.level = Logger::INFO
+			@log.formatter = proc { |severity, datetime, progname, msg|
+			    d = datetime.strftime("%Y-%m-%d %H:%M:%S")
+			    "[#{d}] #{severity}: #{msg}\n"
+			}	
+			return @log
 		end
 	end
 end
