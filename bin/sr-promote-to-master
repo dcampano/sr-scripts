@@ -33,7 +33,7 @@ if(options[:current_master_id] == nil || options[:new_master_id] == nil)
 	exit
 end
 
-connection = Fog::Compute.new(:provider => "AWS", :region => "us-west-1")
+connection = SrScripts::Compute.get
 
 def kill_mysql_connections(db)
 	results = db.query "SHOW PROCESSLIST"

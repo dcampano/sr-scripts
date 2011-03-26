@@ -18,6 +18,14 @@ module SrScripts
 			return Fog::AWS::SimpleDB.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key)
 		end
 	end
+	class SES
+		def self.get
+			yml = YAML.load_file '/etc/sr-scripts.yml'	
+			@aws_access_key = yml["aws_access_key"]
+			@aws_secret_key = yml["aws_secret_key"]	
+			return Fog::AWS::SES.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key)
+		end
+	end
 	class Log
 		def self.get 
 			@log = Logger.new(STDOUT)

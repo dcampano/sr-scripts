@@ -24,7 +24,7 @@ end
 
 optparse.parse!
 
-ses = Fog::AWS::SES.new()
+ses = SrScripts::SES.get
 
 destination = {}
 destination['ToAddresses'] = [options[:to]]
