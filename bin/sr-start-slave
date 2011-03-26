@@ -1,12 +1,14 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
 require 'mysql'
 require 'ostruct'
+require 'sr-scripts'
 
-connection = Fog::Compute.new(:provider => "AWS", :region => "us-west-1")
-sdb = Fog::AWS::SimpleDB.new()
+connection = SrScripts::Compute.get
+sdb = SrScripts::SimpleDB.get
 
 #STUPID HACK because the RPM install starts the server
 `/sbin/service mysql stop`

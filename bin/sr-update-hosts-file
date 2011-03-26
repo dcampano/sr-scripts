@@ -1,10 +1,11 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
+require 'sr-scripts'
 
-connection = Fog::Compute.new(:provider => "AWS", :region => "us-west-1")
-sdb = Fog::AWS::SimpleDB.new()
+sdb = SrScripts::SimpleDB.get
 
 rows = sdb.select("SELECT * FROM dns_info").body["Items"]
 

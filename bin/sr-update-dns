@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
+require 'sr-scripts'
 
-sdb = Fog::AWS::SimpleDB.new()
+sdb = SrScripts::SimpleDB.get
 
 domain = "dns_info"
 dns_alias = ARGV[0] 
