@@ -3,6 +3,7 @@
 require 'rubygems'
 require 'fog'
 require 'optparse'
+require 'sr-scripts'
 
 options = {}
 
