@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
+require 'fog'
+require 'sr-scripts'
+require 'optparse'
+
+options = {}
+
+optparse = OptionParser.new do|opts|
+  opts.on( '-f FROM', 'From Email Address') do |o|
+    options[:from] = o
+  end
+  opts.on( '-t TO', 'To Email Address') do |o|
+    options[:to] = o
+  end
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+optparse.parse!
+
+connection = SrScripts::Compute.get
+
+current_instance_id = `curl -s http://169.254.169.254/latest/meta-data/instance-id`
+
+server = connection.servers.get(current_instance_id)
+
+exit unless server.tags["master_status"] == "slave"
+
+seconds_behind = `mysql -e "SHOW SLAVE STATUS\\G" | grep Seconds_Behind_Master | awk '{print $2;}'`.chomp
+if seconds_behind == "NULL" || seconds_behind.to_i > 60
+	if options[:from] != nil && options[:to] != nil
+		`echo "Replication Error\nSeconds Behind Master: #{seconds_behind}" | sr-send-email -t #{options[:to]} -f #{options[:from]} -s "Replication Error On #{current_instance_id}"`
+	else
+		p "Replication Error On #{current_instance_id}"
+	end
+end
