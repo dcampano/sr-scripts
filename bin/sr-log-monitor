@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+
+files = ARGV[0].split(',')
+
+position_file = "/var/log/sr-log-monitor.pos"
+
+File.open(position_file, 'w') { } unless File.exists?(position_file)
+
+positions = YAML.load_file(position_file) || Hash.new
+
+file_changes = false
+files.each do |file|
+	p "File Not Found: #{file}" && break unless File.exists?(file)
+	last_position = positions[file] || 0
+	if last_position != File.size?(file)
+		f = File.open(file, 'rb')
+		f.seek last_position
+		p "#### #{file} #####"
+		p f.read
+		file_changes = true
+	end
+	positions[file] = File.size?(file)
+end
+
+File.open(position_file, 'w') do |f|
+	f.write positions.to_yaml
+end
+
+exit(1) if file_changes # exit with error code 1 if there are changes
