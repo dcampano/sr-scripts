@@ -17,8 +17,9 @@ files.each do |file|
 	if last_position != File.size?(file)
 		f = File.open(file, 'rb')
 		f.seek last_position
-		p "#### #{file} #####"
-		p f.read
+		puts "#### #{file} #####"
+		puts f.read
+		puts "#### #{file} END ####"
 		file_changes = true
 	end
 	positions[file] = File.size?(file)
