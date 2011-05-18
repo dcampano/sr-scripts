@@ -11,7 +11,7 @@ connection = SrScripts::Compute.get
 sdb = SrScripts::SimpleDB.get
 
 #STUPID HACK because the RPM install starts the server
-`/sbin/service mysql stop`
+`kill -9 $(ps opid= -C mysqld)`
 
 # somewhere up here check to see if the devices are already attached
 
