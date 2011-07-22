@@ -4,6 +4,7 @@ require 'rubygems'
 require 'fog'
 require 'mysql'
 require 'optparse'
+require 'sr-scripts'
 
 options = {}
 
