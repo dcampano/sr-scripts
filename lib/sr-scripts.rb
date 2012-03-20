@@ -15,7 +15,7 @@ module SrScripts
 			yml = YAML.load_file '/etc/sr-scripts.yml'	
 			@aws_access_key = yml["aws_access_key"]
 			@aws_secret_key = yml["aws_secret_key"]	
-			return Fog::AWS::SimpleDB.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key)
+			return Fog::AWS::SimpleDB.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key, :host => "sdb.amazonaws.com")
 		end
 	end
 	class SES
