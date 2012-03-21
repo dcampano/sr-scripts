@@ -6,10 +6,12 @@ module SrScripts
     def self.get
       if File.exists? '.sr-scripts.yml'
         return YAML.load_file '.sr-scripts.yml'
+      elsif File.exists? File.expand_path('~/.sr-scripts.yml')
+        return YAML.load_file File.expand_path('~/.sr-scripts.yml')
       elsif File.exists? '/etc/sr-scripts.yml'
         return YAML.load_file '/etc/sr-scripts.yml'
       else
-        puts "Config File Is Missing: searching for ./.sr-scripts.yml or /etc/sr-scripts.yml"
+        puts "Config File Is Missing: searching for ./.sr-scripts.yml, ~/.sr-scripts.yml or /etc/sr-scripts.yml"
         exit 1
       end
     end
