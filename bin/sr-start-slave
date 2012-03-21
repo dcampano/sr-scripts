@@ -106,8 +106,8 @@ latest_snapshots.each_index do |index|
 	vol.save
 	p vol
 
-	until vol.state == "in-use" do
-		sleep 1
+	until vol.state == "in-use" || vol.state == "attached" do
+		sleep 3
 		vol.reload
 	end
 end
@@ -125,6 +125,8 @@ while disks_attaching
 		disks_attaching = false
 	end
 end
+
+puts "All Disks Are Attached"
 
 
 `mkdir /mnt/mysql`
@@ -150,3 +152,6 @@ connection.tags.create(:resource_id => current_instance.id, :key => "master_inst
 connection.tags.create(:resource_id => current_instance.id, :key => "mysql_disks", :value => current_master.tags["mysql_disks"])
 connection.tags.create(:resource_id => current_instance.id, :key => "master_alias", :value => current_master.tags["master_alias"])
 connection.tags.create(:resource_id => current_instance.id, :key => "master_status", :value => "slave")
+
+p `mysql -e "SHOW SLAVE STATUS\G"`
+puts "SERVER COMPLETED SETUP"

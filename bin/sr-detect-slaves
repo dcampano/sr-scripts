@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
+require 'fog'
+require 'mysql'
+require 'optparse'
+require 'sr-scripts'
+
+def get_public_ip(fog, instance_id)
+	return fog.servers.get(instance_id).public_ip_address
+end
+
+options = {}
+
+optparse = OptionParser.new do|opts|
+  opts.on( '--master-alias-tag MASTER_ALIAS', 'AWS Tag For Master Alias') do |o|
+    options[:master_alias_tag] = o
+  end
+  opts.on( '--mysql-user USER', 'Mysql User') do |o|
+    options[:mysql_user] = o
+  end
+  opts.on( '--mysql-pass PASSWORD', 'Mysql Password') do |o|
+    options[:mysql_password] = o
+  end
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+optparse.parse!
+
+if(options[:master_alias_tag] == nil)
+	p "Must specify --master-alias-tag"
+	exit
+end
+
+mysql_user = options[:mysql_user]
+mysql_pass = options[:mysql_password]
+
+connection = SrScripts::Compute.get
+
+all_servers = []
+connection.servers.all.each do |server|
+  all_servers.push(server) if server.tags["master_alias"] == options[:master_alias_tag] && server.state == "running"
+end
+
+p "Found #{all_servers.length} Running Servers: " + all_servers.map {|s| s.id}.join(", ")
+
+def print_server (server, padding)
+  printf "%#{padding}s: %90s\n", server.id, server.created_at
+end
+
+def print_all_slaves (server, all_servers, padding)
+  slave_servers = all_servers.find_all { |s| s.tags["master_instance_id"] == server.id }
+  slave_servers.each do |slave|
+    padding += 6
+    print_server(slave, padding)
+
+    print_all_slaves(slave, all_servers, padding) unless slave.tags["master_status"] == "master"
+  end
+end
+
+master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master" }
+p master_servers.length
+
+master_servers.each do |master|
+  p "FOUND MASTER: #{master.id}"
+  padding = 10 
+  print_server(master, padding)
+  print_all_slaves(master, all_servers, padding)
+end
+
+all_servers.each do |server|
+  mysql_conn = Mysql.new(server.public_ip_address, mysql_user, mysql_pass)
+  result = mysql_conn.query("SHOW SLAVE STATUS;")
+  result.each_hash do |row|
+    p row
+    p "SECONDS BEHIND: #{row['Seconds_Behind_Master']}"
+    if row['Seconds_Behind_Master'] == nil
+      p "Doesn't have a master"
+    end
+  end
+
+  puts "END SERVER: #{server.id}"
+
+end
