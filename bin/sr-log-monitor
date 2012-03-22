@@ -14,7 +14,8 @@ file_changes = false
 files.each do |file|
 	p "File Not Found: #{file}" && break unless File.exists?(file)
 	last_position = positions[file] || 0
-	if last_position != File.size?(file)
+  file_size = File.size?(file) || 0
+	if last_position != file_size
 		f = File.open(file, 'rb')
 		f.seek last_position
 		puts "#### #{file} #####"
@@ -22,7 +23,7 @@ files.each do |file|
 		puts "#### #{file} END ####"
 		file_changes = true
 	end
-	positions[file] = File.size?(file)
+	positions[file] = file_size
 end
 
 File.open(position_file, 'w') do |f|
