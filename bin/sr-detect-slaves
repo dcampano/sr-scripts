@@ -56,17 +56,33 @@ def print_all_slaves (server, all_servers, padding)
   slave_servers = all_servers.find_all { |s| s.tags["master_instance_id"] == server.id }
   slave_servers.each do |slave|
     padding += 6
-    print_server(slave, padding)
-
-    print_all_slaves(slave, all_servers, padding) unless slave.tags["master_status"] == "master"
+    unless slave.tags["master_status"] == "master"
+      print_server(slave, padding)
+      print_all_slaves(slave, all_servers, padding) 
+    end
   end
 end
+
 
 master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master" }
 p master_servers.length
 
+$found_servers = []
+
 master_servers.each do |master|
   p "FOUND MASTER: #{master.id}"
+  padding = 10 
+  print_server(master, padding)
+  $found_servers.push master.id
+  print_all_slaves(master, all_servers, padding)
+end
+
+
+master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master-retired" }
+p master_servers.length
+
+master_servers.each do |master|
+  p "FOUND RETIRED MASTER: #{master.id}"
   padding = 10 
   print_server(master, padding)
   print_all_slaves(master, all_servers, padding)
