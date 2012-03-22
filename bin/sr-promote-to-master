@@ -7,6 +7,7 @@ require 'optparse'
 require 'sr-scripts'
 
 options = {}
+options[:skip_master] = false
 
 optparse = OptionParser.new do|opts|
   opts.on( '--current-master-id INSTANCE_ID', 'AWS Instance Id Of Current Master Machine') do |o|
@@ -21,6 +22,9 @@ optparse = OptionParser.new do|opts|
   opts.on( '--mysql-pass PASSWORD', 'Mysql Password') do |o|
     options[:mysql_password] = o
   end
+  opts.on( '--skip-master', 'Use This Flag To Skip Connecting To --current-master-id') do |o|
+    options[:skip_master] = true
+  end
   opts.on( '-h', '--help', 'Display this screen' ) do
     puts opts
     exit
@@ -30,7 +34,7 @@ end
 optparse.parse!
 
 if(options[:current_master_id] == nil || options[:new_master_id] == nil)
-	p "Must specify --current-master-id AND --new-master-id"
+  puts "Must specify --current-master-id, --new-master-id, --mysql-user, --mysql-pass"
 	exit
 end
 
@@ -40,31 +44,51 @@ def kill_mysql_connections(db)
 	results = db.query "SHOW PROCESSLIST"
 	results.each_hash do |row|
 		unless row["User"] == "system user" || row["Command"] == 'Binlog Dump' || row["Info"] == "SHOW PROCESSLIST"
-			puts row["Id"]
-			db.query "KILL #{row['Id']};"
+			puts "KILLING QUERY ID: #{row["Id"]}"
+      begin
+        db.query "KILL #{row['Id']};"
+      rescue
+        puts "INFO:  COULDN'T KILL CONNECTION ID #{row['Id']}"
+      end
 		end
 	end
 end
 
-def get_private_ip(fog, instance_id)
-	return fog.servers.get(instance_id).private_ip_address
+def get_public_ip(fog, instance_id)
+	return fog.servers.get(instance_id).public_ip_address
 end
 
 mysql_user = options[:mysql_user]
 mysql_pass = options[:mysql_password]
 
-current_master_ip = get_private_ip(connection, options[:current_master_id])
-new_master_ip = get_private_ip(connection, options[:new_master_id])
+current_master_ip = get_public_ip(connection, options[:current_master_id])
+new_master_ip = get_public_ip(connection, options[:new_master_id])
 
-current_master = Mysql.new(current_master_ip, mysql_user, mysql_pass)
-new_master = Mysql.new(new_master_ip, mysql_user, mysql_pass)
+current_master, new_master = nil
 
-current_master.query("SET GLOBAL read_only = 1")
-sleep 1 # HACKY CRAP
-kill_mysql_connections current_master 
+unless options[:skip_master]
+  begin
+    current_master = Mysql.new(current_master_ip, mysql_user, mysql_pass)
+    p current_master.query("SELECT version();")
+  rescue 
+    puts "Error Connecting to --master-instance-id.  Try running with --skip-master"
+    exit 1
+  end
+end
+
+begin
+  new_master = Mysql.new(new_master_ip, mysql_user, mysql_pass)
+rescue
+  puts "Error connecting to new master"
+  exit 1
+end
+
+unless options[:skip_master]
+  current_master.query("SET GLOBAL read_only = 1")
+  sleep 1 # HACKY CRAP
+  kill_mysql_connections current_master 
+end
 new_master.query("STOP SLAVE;")
 new_master.query("SET GLOBAL read_only = 0")
 
-
-
-
+puts "Script Complete"
