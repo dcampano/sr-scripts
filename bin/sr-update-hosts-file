@@ -5,16 +5,5 @@ $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
 require 'sr-scripts'
 
-sdb = SrScripts::SimpleDB.get
-
-rows = sdb.select("SELECT * FROM dns_info").body["Items"]
-
-if rows.length > 0
-	File.open('/etc/hosts', 'w') { |f|
-		f.puts "# THIS FILE MANAGED BY sr-update-hosts SCRIPT"
-		f.puts "127.0.0.1 localhost localhost.localdomain"
-		rows.each_pair { |item_name, values|
-			f.puts "#{values['ip_address']} #{item_name}"
-		}
-	}
-end
+manager = SrScripts::HostsManager.new
+manager.generate_file "/etc/hosts"

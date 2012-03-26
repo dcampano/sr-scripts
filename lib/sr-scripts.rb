@@ -1,5 +1,8 @@
 require 'yaml'
 require 'logger'
+require 'fog'
+
+require 'sr-scripts/HostsManager'
 
 module SrScripts
   class ConfigFile
