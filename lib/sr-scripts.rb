@@ -6,7 +6,7 @@ module SrScripts
     def self.get
       if File.exists? '.sr-scripts.yml'
         return YAML.load_file '.sr-scripts.yml'
-      elsif ENV["HOME"]
+      elsif ENV["HOME"] && File.exists?(File.expand_path('~/.sr-scripts.yml'))
         return YAML.load_file File.expand_path('~/.sr-scripts.yml')
       elsif File.exists? '/etc/sr-scripts.yml'
         return YAML.load_file '/etc/sr-scripts.yml'
