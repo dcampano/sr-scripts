@@ -153,5 +153,5 @@ connection.tags.create(:resource_id => current_instance.id, :key => "mysql_disks
 connection.tags.create(:resource_id => current_instance.id, :key => "master_alias", :value => current_master.tags["master_alias"])
 connection.tags.create(:resource_id => current_instance.id, :key => "master_status", :value => "slave")
 
-p `mysql -e "SHOW SLAVE STATUS\G"`
+p `mysql -e "SHOW SLAVE STATUS\\G"`
 puts "SERVER COMPLETED SETUP"
