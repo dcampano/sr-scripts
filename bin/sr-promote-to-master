@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
 require 'mysql'
 require 'optparse'
@@ -21,6 +22,9 @@ optparse = OptionParser.new do|opts|
   end
   opts.on( '--mysql-pass PASSWORD', 'Mysql Password') do |o|
     options[:mysql_password] = o
+  end
+  opts.on( '--sns-topic-id TOPIC_ID', 'SNS Topic Id To Post To') do |o|
+    options[:sns_topic_id] = o
   end
   opts.on( '--skip-master', 'Use This Flag To Skip Connecting To --current-master-id') do |o|
     options[:skip_master] = true
@@ -58,18 +62,21 @@ def get_public_ip(fog, instance_id)
 	return fog.servers.get(instance_id).public_ip_address
 end
 
+fog_current_master = connection.servers.get(options[:current_master_id])
+fog_new_master = connection.servers.get(options[:new_master_id])
+
 mysql_user = options[:mysql_user]
 mysql_pass = options[:mysql_password]
 
 current_master_ip = get_public_ip(connection, options[:current_master_id])
 new_master_ip = get_public_ip(connection, options[:new_master_id])
 
-current_master, new_master = nil
+current_master_mysql, new_master_mysql = nil
 
 unless options[:skip_master]
   begin
-    current_master = Mysql.new(current_master_ip, mysql_user, mysql_pass)
-    p current_master.query("SELECT version();")
+    current_master_mysql = Mysql.new(current_master_ip, mysql_user, mysql_pass)
+    p current_master_mysql.query("SELECT version();")
   rescue 
     puts "Error Connecting to --master-instance-id.  Try running with --skip-master"
     exit 1
@@ -77,18 +84,32 @@ unless options[:skip_master]
 end
 
 begin
-  new_master = Mysql.new(new_master_ip, mysql_user, mysql_pass)
+  new_master_mysql = Mysql.new(new_master_ip, mysql_user, mysql_pass)
 rescue
   puts "Error connecting to new master"
   exit 1
 end
 
 unless options[:skip_master]
-  current_master.query("SET GLOBAL read_only = 1")
+  current_master_mysql.query("SET GLOBAL read_only = 1")
   sleep 1 # HACKY CRAP
-  kill_mysql_connections current_master 
+  kill_mysql_connections current_master_mysql 
 end
-new_master.query("STOP SLAVE;")
-new_master.query("SET GLOBAL read_only = 0")
+new_master_mysql.query("STOP SLAVE;")
+new_master_mysql.query("SET GLOBAL read_only = 0")
 
-puts "Script Complete"
+puts "New Master Set"
+private_dns_alias = fog_new_master.tags["master_alias"]
+if private_dns_alias
+  puts "Updating DNS Entries"
+  puts "Creating entry: #{private_dns_alias}  #{fog_new_master.private_ip_address}"
+  SrScripts::HostsManager.new.update_dns(private_dns_alias, fog_new_master.private_ip_address)
+  public_dns_alias = "#{private_dns_alias}.external"
+  puts "Creating entry: #{public_dns_alias}  #{fog_new_master.public_ip_address}"
+  SrScripts::HostsManager.new.update_dns(public_dns_alias, fog_new_master.public_ip_address)
+  if options[:sns_topic_id]
+    puts "POSTING MESSAGE TO SNS TOPIC: #{options[:sns_topic_id]}"
+    sns = SrScripts::SNS.get
+    sns.publish(options[:sns_topic_id], "ReloadHostsFile")
+  end
+end

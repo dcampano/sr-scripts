@@ -7,22 +7,21 @@ require 'mysql'
 require 'ostruct'
 require 'sr-scripts'
 
-connection = SrScripts::Compute.get
+instance_id = ARGV[0] 
+if ARGV.length != 1
+	p "Must specify an instance id"
+	exit
+end
+
+connection = SrScripts::Compute.find_connection(instance_id)
 sdb = SrScripts::SimpleDB.get
 
 #STUPID HACK because the RPM install starts the server
 `kill -9 $(ps opid= -C mysqld)`
 
 # somewhere up here check to see if the devices are already attached
-
 p connection.snapshots.all.first
 
-if ARGV.length != 1
-	p "Must specify an instance id"
-	exit
-end
-
-instance_id = ARGV[0] 
 
 records = sdb.select("SELECT * FROM db_recovery_info WHERE instance_id = '#{instance_id}' AND timestamp > '1' ORDER BY timestamp DESC LIMIT 5").body["Items"]
 
@@ -63,6 +62,10 @@ end
 
 #latest_snapshots now equals the snapshot ids
 p latest_snapshots
+if latest_snapshots == nil
+  puts "Exiting:  Couldn't Find Any Available Snapshots To Use"
+  exit
+end
 
 def get_latest_snapshot(snapshots, instance_id)
         filtered_snap = snapshots.find_all { |s| s.tags["instance_id"] == instance_id }

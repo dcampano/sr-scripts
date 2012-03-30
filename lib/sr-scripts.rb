@@ -20,12 +20,26 @@ module SrScripts
     end
   end
 	class Compute 
-		def self.get 
+		def self.get region=nil
+      @region = region || 'us-west-1'
       yml = ConfigFile.get
 			@aws_access_key = yml["aws_access_key"]
 			@aws_secret_key = yml["aws_secret_key"]	
-			return Fog::Compute.new(:provider => "AWS", :aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key, :region => "us-west-1")
+			return Fog::Compute.new(:provider => "AWS", :aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key, :region => @region)
 		end
+    def self.find_connection(instance_id)
+      self.get_regions.each do |region|
+        conn = self.get(region)
+        server = conn.servers.get(instance_id)
+        if server
+          return conn
+        end
+      end
+      puts "Couldn't Find Server With Instance Id: #{instance_id}"
+    end
+    def self.get_regions
+      return ['us-west-1', 'us-west-2', 'us-east-1']
+    end
 	end
 	class SimpleDB
 		def self.get
@@ -41,6 +55,14 @@ module SrScripts
 			@aws_access_key = yml["aws_access_key"]
 			@aws_secret_key = yml["aws_secret_key"]	
 			return Fog::AWS::SES.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key)
+		end
+	end
+	class SNS
+		def self.get
+      yml = ConfigFile.get
+			@aws_access_key = yml["aws_access_key"]
+			@aws_secret_key = yml["aws_secret_key"]	
+			return Fog::AWS::SNS.new(:aws_access_key_id => @aws_access_key, :aws_secret_access_key => @aws_secret_key, :region => 'us-east-1')
 		end
 	end
 	class Log

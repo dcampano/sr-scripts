@@ -49,7 +49,7 @@ end
 p "Found #{all_servers.length} Running Servers: " + all_servers.map {|s| s.id}.join(", ")
 
 def print_server (server, padding)
-  printf "%#{padding}s: %90s\n", server.id, server.created_at
+  printf "%#{padding}s: %60s %s\n", server.id, server.created_at, server.dns_name
 end
 
 def print_all_slaves (server, all_servers, padding)
