@@ -1,0 +1,90 @@
+diff --git a/class.Cache.php b/class.Cache.php
+index 652e7be..8d6de13 100644
+--- a/class.Cache.php
++++ b/class.Cache.php
+@@ -1,5 +1,6 @@
+ <?php
+ 
++
+ class Cache {
+ 
+ 	private static $instance;
+@@ -24,6 +25,7 @@ class Cache {
+ 		$this->memcache = new Memcache();
+ 		foreach($array as $value) {
+ 			$this->memcache->addServer($value['host'], $value['port']);
++			error_log("ADDING " . $value['host']);
+ 		}
+ 	}
+ 
+diff --git a/conf/configuration.php b/conf/configuration.php
+index 6ea808c..b55cf05 100644
+--- a/conf/configuration.php
++++ b/conf/configuration.php
+@@ -1,6 +1,6 @@
+ <?php
+ 
+-require_once dirname(__FILE__).'/game_vars.php';
++require_once 'game_vars.php';
+ require_once dirname(__FILE__).'/../helpers.php';
+ 
+ //api key variables for Facebook
+@@ -15,21 +15,25 @@ $developers = array(520056095, 66504409, 520412027);
+ //$appsecret = 'e1bcdd0d303b6c8dbe12672e73264c65';
+ 
+ //database settings
+-$dbhost = '10.16.78.18';
++$dbhost = 'db5.spicerackapps.com';
+ $dbuser = 'dorkapps_apprw';
+ $dbpass = 'd0tn3tsuX0rs';
+ $dbname = 'dorkapps_bingo';
+ 
++ini_set('memcache.hash_strategy', 'consistent');
++ini_set('session.save_handler', "memcache");
++ini_set('session.save_path', "tcp://bingo.vc0auv.0001.usw2.cache.amazonaws.com:11211, tcp://bingo.vc0auv.0002.usw2.cache.amazonaws.com:11211");
++
+ //memcache settings
+ $memcache_ip = 'localhost';
+ $memcache_port = 11211;
+ 
+ //server settings
+-$server_root = "http://dev-fb-bingo.spicerackapps.com/";
++$server_root = "http://staging-bingo.spicerackapps.com/";
+ $canvas_root = "http://apps.facebook.com/playbingodev/";
+-$external_root = "http://dev-bingo.spicerackapps.com/";
++$external_root = "http://bingo.spicerackapps.com/";
+ $static_root = is_https() ? "https://static.spicerackapps.com/bingo/" : "http://static.spicerackapps.com/bingo/";
+-$payments_root = "http://dev-fb-bingo.spicerackapps.com/"; //THIS SHOULD BE A DNS NAME FOR PRODUCTION
++$payments_root = $server_root; //THIS SHOULD BE A DNS NAME ON PROD
+ 
+ 
+ ?>
+diff --git a/db.php b/db.php
+index 32e0c58..ff69d78 100644
+--- a/db.php
++++ b/db.php
+@@ -8,7 +8,10 @@ require_once dirname(__FILE__).'/class.User.php';
+ require_once dirname(__FILE__).'/class.Cache.php';
+ require_once dirname(__FILE__).'/StoreController.php';
+ 
+-Cache::instance()->setup(array(array("host" => $memcache_ip, "port" => $memcache_port)));
++Cache::instance()->setup(array(
++	array("host" => 'bingo.vc0auv.0001.usw2.cache.amazonaws.com', "port" => $memcache_port),
++	array("host" => 'bingo.vc0auv.0002.usw2.cache.amazonaws.com', "port" => $memcache_port)
++));
+ //Cache::instance()->setDebug(true);
+ Cache::instance()->setNamespace("fbbingo.");
+ 
+diff --git a/helpers.php b/helpers.php
+index 877fec5..e6e3961 100644
+--- a/helpers.php
++++ b/helpers.php
+@@ -7,7 +7,7 @@ function is_external_site() {
+ }
+ 
+ function is_https() {
+-	return $_SERVER['SERVER_PORT'] == 443;
++	return $_SERVER['SERVER_PORT'] == 443 || $_SERVER['HTTP_X_FORWARDED_PORT'] == 443;
+ }
+ 
+ function startsWith($haystack, $needle)
