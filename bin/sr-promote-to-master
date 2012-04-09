@@ -112,4 +112,7 @@ if private_dns_alias
     sns = SrScripts::SNS.get
     sns.publish(options[:sns_topic_id], "ReloadHostsFile")
   end
+  puts "Updating Instance Tags"
+  connection.tags.create(:resource_id => fog_new_master.id, :key => "master_status", :value => "master")
+  connection.tags.create(:resource_id => fog_current_master.id, :key => "master_status", :value => "master-retired")
 end
