@@ -39,15 +39,6 @@ end
 mysql_user = options[:mysql_user]
 mysql_pass = options[:mysql_password]
 
-connection = SrScripts::Compute.get
-
-all_servers = []
-connection.servers.all.each do |server|
-  all_servers.push(server) if server.tags["master_alias"] == options[:master_alias_tag] && server.state == "running"
-end
-
-p "Found #{all_servers.length} Running Servers: " + all_servers.map {|s| s.id}.join(", ")
-
 def print_server (server, padding)
   printf "%#{padding}s: %60s %s\n", server.id, server.created_at, server.dns_name
 end
@@ -63,42 +54,55 @@ def print_all_slaves (server, all_servers, padding)
   end
 end
 
+SrScripts::Compute.get_regions.each do |region|
 
-master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master" }
-p master_servers.length
+  connection = SrScripts::Compute.get(region)
 
-$found_servers = []
-
-master_servers.each do |master|
-  p "FOUND MASTER: #{master.id}"
-  padding = 10 
-  print_server(master, padding)
-  $found_servers.push master.id
-  print_all_slaves(master, all_servers, padding)
-end
-
-
-master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master-retired" }
-p master_servers.length
-
-master_servers.each do |master|
-  p "FOUND RETIRED MASTER: #{master.id}"
-  padding = 10 
-  print_server(master, padding)
-  print_all_slaves(master, all_servers, padding)
-end
-
-all_servers.each do |server|
-  mysql_conn = Mysql.new(server.public_ip_address, mysql_user, mysql_pass)
-  result = mysql_conn.query("SHOW SLAVE STATUS;")
-  result.each_hash do |row|
-    p row
-    p "SECONDS BEHIND: #{row['Seconds_Behind_Master']}"
-    if row['Seconds_Behind_Master'] == nil
-      p "Doesn't have a master"
-    end
+  all_servers = []
+  connection.servers.all.each do |server|
+    all_servers.push(server) if server.tags["master_alias"] == options[:master_alias_tag] && server.state == "running"
   end
 
-  puts "END SERVER: #{server.id}"
+  p "Found #{all_servers.length} Running Servers: " + all_servers.map {|s| s.id}.join(", ")
 
+
+
+  master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master" }
+  p master_servers.length
+
+  $found_servers = []
+
+  master_servers.each do |master|
+    p "FOUND MASTER: #{master.id}"
+    padding = 10 
+    print_server(master, padding)
+    $found_servers.push master.id
+    print_all_slaves(master, all_servers, padding)
+  end
+
+
+  master_servers = all_servers.find_all { |server| server.tags["master_status"] == "master-retired" }
+  p master_servers.length
+
+  master_servers.each do |master|
+    p "FOUND RETIRED MASTER: #{master.id}"
+    padding = 10 
+    print_server(master, padding)
+    print_all_slaves(master, all_servers, padding)
+  end
+
+  all_servers.each do |server|
+    mysql_conn = Mysql.new(server.public_ip_address, mysql_user, mysql_pass)
+    result = mysql_conn.query("SHOW SLAVE STATUS;")
+    result.each_hash do |row|
+      p row
+      p "SECONDS BEHIND: #{row['Seconds_Behind_Master']}"
+      if row['Seconds_Behind_Master'] == nil
+        p "Doesn't have a master"
+      end
+    end
+
+    puts "END SERVER: #{server.id}"
+
+  end
 end

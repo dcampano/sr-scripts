@@ -42,7 +42,7 @@ if(options[:current_master_id] == nil || options[:new_master_id] == nil)
 	exit
 end
 
-connection = SrScripts::Compute.get
+connection = SrScripts::Compute.find_connection(options[:current_master_id])
 
 def kill_mysql_connections(db)
 	results = db.query "SHOW PROCESSLIST"
