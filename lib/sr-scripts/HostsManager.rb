@@ -10,7 +10,7 @@ module SrScripts
           f.puts "# THIS FILE MANAGED BY sr-update-hosts SCRIPT"
           f.puts "127.0.0.1 localhost localhost.localdomain"
           rows.each_pair { |item_name, values|
-            f.puts "#{values['ip_address']} #{item_name}"
+            f.puts "#{values['ip_address'].first} #{item_name}"
           }
         }
       end
