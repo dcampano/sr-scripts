@@ -42,7 +42,8 @@ if(options[:current_master_id] == nil || options[:new_master_id] == nil)
 	exit
 end
 
-connection = SrScripts::Compute.find_connection(options[:current_master_id])
+connection_current_master = SrScripts::Compute.find_connection(options[:current_master_id])
+connection_new_master = SrScripts::Compute.find_connection(options[:new_master_id])
 
 def kill_mysql_connections(db)
 	results = db.query "SHOW PROCESSLIST"
@@ -62,14 +63,14 @@ def get_public_ip(fog, instance_id)
 	return fog.servers.get(instance_id).public_ip_address
 end
 
-fog_current_master = connection.servers.get(options[:current_master_id])
-fog_new_master = connection.servers.get(options[:new_master_id])
+fog_current_master = connection_current_master.servers.get(options[:current_master_id])
+fog_new_master = connection_new_master.servers.get(options[:new_master_id])
 
 mysql_user = options[:mysql_user]
 mysql_pass = options[:mysql_password]
 
-current_master_ip = get_public_ip(connection, options[:current_master_id])
-new_master_ip = get_public_ip(connection, options[:new_master_id])
+current_master_ip = get_public_ip(connection_current_master, options[:current_master_id])
+new_master_ip = get_public_ip(connection_new_master, options[:new_master_id])
 
 current_master_mysql, new_master_mysql = nil
 
@@ -113,6 +114,11 @@ if private_dns_alias
     sns.publish(options[:sns_topic_id], "ReloadHostsFile")
   end
   puts "Updating Instance Tags"
-  connection.tags.create(:resource_id => fog_new_master.id, :key => "master_status", :value => "master")
-  connection.tags.create(:resource_id => fog_current_master.id, :key => "master_status", :value => "master-retired")
+  connection_new_master.tags.create(:resource_id => fog_new_master.id, :key => "master_status", :value => "master")
+  connection_current_master.tags.create(:resource_id => fog_current_master.id, :key => "master_status", :value => "master-retired")
 end
+
+puts "Script Completed: Sleeping 10 Seconds And Then Killing Mysql Master Connections Again"
+sleep 10
+kill_mysql_connections current_master_mysql 
+
