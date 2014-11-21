@@ -63,14 +63,18 @@ def get_public_ip(fog, instance_id)
 	return fog.servers.get(instance_id).public_ip_address
 end
 
+def get_private_ip(fog, instance_id)
+	return fog.servers.get(instance_id).private_ip_address
+end
+
 fog_current_master = connection_current_master.servers.get(options[:current_master_id])
 fog_new_master = connection_new_master.servers.get(options[:new_master_id])
 
 mysql_user = options[:mysql_user]
 mysql_pass = options[:mysql_password]
 
-current_master_ip = get_public_ip(connection_current_master, options[:current_master_id])
-new_master_ip = get_public_ip(connection_new_master, options[:new_master_id])
+current_master_ip = get_private_ip(connection_current_master, options[:current_master_id])
+new_master_ip = get_private_ip(connection_new_master, options[:new_master_id])
 
 current_master_mysql, new_master_mysql = nil
 
