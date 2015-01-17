@@ -145,6 +145,7 @@ end
 
 `chown -R mysql:mysql /mnt/mysql/mysql`
 `chown -R mysql:mysql /mnt/mysql/logs`
+`chown -R mysql:mysql /mnt/mysql/tmp`
 `rm -f /mnt/mysql/mysql/auto.cnf`
 
 `/sbin/service mysql start`
