@@ -106,6 +106,7 @@ latest_snapshots.each_index do |index|
 	vol = connection.volumes.new(:snapshot_id => snapshot_id, :availability_zone => current_instance.availability_zone, :size => snapshot.volume_size)
 	vol.device = current_disk 
 	vol.server = current_instance
+  vol.type = "gp2"
 	vol.save
 	p vol
 
