@@ -132,6 +132,7 @@ end
 
 puts "All Disks Are Attached"
 
+sleep 10
 
 `mkdir /mnt/mysql`
 # NEED TO FIND OUT IF NUMBER OF DISKS IS GREATER THAN 1, IF SO, THEN use mdadm to create an array and mount, if not, then just mount

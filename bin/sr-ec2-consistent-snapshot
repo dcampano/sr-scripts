@@ -145,6 +145,7 @@ attributes["snapshots"] = snapshots.join(",")
 attributes["timestamp"] = Time.now.to_i
 attributes["master_log_file"] = master_info["MASTER_LOG_FILE"]
 attributes["master_log_pos"] = master_info["MASTER_LOG_POS"]
+attributes["retention_days"] = 7
 sdb.put_attributes("db_recovery_info", random_id, attributes)
 
 snapshots.each do |s|

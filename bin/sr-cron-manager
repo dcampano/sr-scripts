@@ -6,6 +6,7 @@ require 'rubygems'
 $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'fog'
 require 'optparse'
+require 'sr-scripts'
 
 def send_email(subject, body)
 	`echo "#{body}" | sr-send-email -f dcampano@gmail.com -t dcampano@gmail.com -s "#{subject}"`
@@ -51,7 +52,7 @@ if current_instance_id == cron_instance_id
 	end
 else
 	# Check if there is an ec2 instance that is running to process jobs		
-  srv = SrScripts::Compute.find_connection(cron_instance_id)
+  srv = SrScripts::Compute.find_instance(cron_instance_id)
 	if (srv && srv.state != "running") || !srv
 		send_email("No Cron Server Running For #{cron_id}", "Check cron_manager.cron_systems table to make sure there is a system available to process jobs")
 	end

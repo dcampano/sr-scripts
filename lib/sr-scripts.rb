@@ -37,6 +37,17 @@ module SrScripts
       end
       puts "Couldn't Find Server With Instance Id: #{instance_id}"
     end
+    def self.find_instance(instance_id)
+      self.get_regions.each do |region|
+        conn = self.get(region)
+        server = conn.servers.get(instance_id)
+        if server
+          return server
+        end
+      end
+      puts "Couldn't Find Server With Instance Id: #{instance_id}"
+      return nil
+    end
     def self.get_regions
       return ['us-west-1', 'us-west-2', 'us-east-1']
     end

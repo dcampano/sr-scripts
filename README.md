@@ -4,5 +4,5 @@ rake build
 
 To publish the built gem:
 
-rake release
+Upload to https://manage.fury.io/
 
