@@ -1,0 +1,58 @@
+#!/usr/bin/env ruby
+
+# THIS IS USED TO MANAGE CRON JOBS SO THEY DON'T RUN ON MULTIPLE SYSTEMS
+
+require 'rubygems'
+$:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
+require 'fog'
+require 'optparse'
+
+def send_email(subject, body)
+	`echo "#{body}" | sr-send-email -f dcampano@gmail.com -t dcampano@gmail.com -s "#{subject}"`
+end
+
+options = {
+	:user => "root"
+}
+
+optparse = OptionParser.new do|opts|
+  opts.on( '-u USER', 'User to run') do |u|
+    options[:user] = u
+  end
+  opts.on( '-i', '--id ID', 'Id of job to check if should run on') do |id|
+    options[:id] = id
+  end
+  opts.on( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+optparse.parse!
+
+cron_id = options[:id]
+cron_instance_id = `curl -s "http://aws-web1.spicerackapps.com/dork/cron-manager/api.php?method=cron_lookup&id=#{cron_id}"`
+
+if cron_instance_id == ''
+  send_email("No Cron Server Set Up For #{cron_id}", "Check cron_manager.cron_systems table to make sure there is a system available to process jobs")
+  exit 1
+end
+
+current_instance_id = `curl -s http://169.254.169.254/latest/meta-data/instance-id`
+
+if current_instance_id == cron_instance_id
+  command = ARGV.shift
+	output = `su -l #{options[:user]} -c "#{command}"`
+	if $?.to_i != 0
+		send_email("Cron Job Failed", "#{command}")
+	end
+	if output != ""
+		send_email("Cron Output", output)
+	end
+else
+	# Check if there is an ec2 instance that is running to process jobs		
+  srv = SrScripts::Compute.find_connection(cron_instance_id)
+	if (srv && srv.state != "running") || !srv
+		send_email("No Cron Server Running For #{cron_id}", "Check cron_manager.cron_systems table to make sure there is a system available to process jobs")
+	end
+end
