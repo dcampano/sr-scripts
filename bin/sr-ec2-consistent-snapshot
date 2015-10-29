@@ -9,6 +9,7 @@ $:.unshift(File.join(File.dirname(__FILE__), "..", "lib"))
 require 'optparse'
 require 'fog'
 require 'sr-scripts'
+require 'aws-sdk'
 
 $opts = {
   :aws_access_key => ENV["AWS_ACCESS_KEY_ID"],
@@ -148,10 +149,14 @@ attributes["master_log_pos"] = master_info["MASTER_LOG_POS"]
 attributes["retention_days"] = 7
 sdb.put_attributes("db_recovery_info", random_id, attributes)
 
-snapshots.each do |s|
-	attributes.each do |key, value|
-		connection.tags.create(:resource_id => s, :key => key, :value => value)
-	end
-end
+# THIS IS HACKY, BUT IT WORKS FOR NOW
+# IT ALLOWS US TO SET ALL THE TAGS WITH ONE API CALL
+config = SrScripts::ConfigFile.get
+ec2 = Aws::EC2::Client.new( region: connection.region, credentials: Aws::Credentials.new(config["aws_access_key"], config["aws_secret_key"]))
+
+ec2.create_tags({
+  resources: snapshots,
+  tags: attributes.map { |k, v| { key: k, value: v.to_s } }
+})
 
 p master_info
