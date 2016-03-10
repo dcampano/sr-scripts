@@ -16,9 +16,6 @@ end
 connection = SrScripts::Compute.find_connection(instance_id)
 sdb = SrScripts::SimpleDB.get
 
-#STUPID HACK because the RPM install starts the server
-`kill -9 $(ps opid= -C mysqld)`
-
 # somewhere up here check to see if the devices are already attached
 p connection.snapshots.all.first
 
