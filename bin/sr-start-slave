@@ -149,16 +149,24 @@ end
 
 `/sbin/service mysql start`
 
-gtid_status = `mysql --skip-column-names -e "SELECT @@GLOBAL.GTID_MODE;" --raw`.chomp
-case gtid_status
-when 'ON'
-  `mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_AUTO_POSITION = 1;"`
-when 'OFF'
-  `mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='#{master_log_file}', MASTER_LOG_POS=#{master_log_pos};"`
-else
-  p 'Exiting With Error: Unknown Variable GTID_MODE'
-  exit 1
+
+gtid_status_found = false
+until gtid_status_found
+  gtid_status = `mysql --skip-column-names -e "SELECT @@GLOBAL.GTID_MODE;" --raw`.chomp
+  case gtid_status
+  when 'ON'
+    gtid_status_found = true
+    `mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_AUTO_POSITION = 1;"`
+  when 'OFF'
+    gtid_status_found = true
+    `mysql -e "CHANGE MASTER TO MASTER_HOST='#{current_master.private_ip_address}', MASTER_LOG_FILE='#{master_log_file}', MASTER_LOG_POS=#{master_log_pos};"`
+  else
+      p 'Error Fetching GTID_MODE: Unknown Variable GTID_MODE'
+      p 'Sleeping For 10 Seconds To Try Again'
+      sleep 10
+  end
 end
+
 # start mysql, connect to mysql and issue change master and start slave commands
 `mysql -e "START SLAVE;"`
 
