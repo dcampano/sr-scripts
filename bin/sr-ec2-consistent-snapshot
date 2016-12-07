@@ -69,6 +69,7 @@ def mysql_locked(&block)
     mysql.query("SET SQL_LOG_BIN=0")
     mysql.query("FLUSH LOCAL TABLES")
     mysql.query("FLUSH LOCAL TABLES WITH READ LOCK")
+    mysql.query("FLUSH BINARY LOGS")
     
     def query_result_string(mysql, query)
       result = mysql.query(query)
@@ -111,6 +112,7 @@ def mysql_locked(&block)
 end
 
 def xfs_frozen(&block)
+  system('sync')
   system('xfs_freeze', '-f', $opts[:xfs_filesystem]) if $opts[:xfs_filesystem]
   
   begin
